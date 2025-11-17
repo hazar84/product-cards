@@ -2,27 +2,27 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Product, ProductsState } from '../../types/product';
 import axios from 'axios';
 
-// Загружаем ВСЕ продукты из localStorage
-const loadAllProductsFromStorage = (): Product[] => {
+// Загружаем продукты из localStorage
+const loadProductsFromStorage = (): Product[] => {
   try {
-    const saved = localStorage.getItem('allProducts');
+    const saved = localStorage.getItem('products');
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
   }
 };
 
-// Сохраняем ВСЕ продукты в localStorage
-const saveAllProductsToStorage = (products: Product[]) => {
+// Сохраняем продукты в localStorage
+const saveProductsToStorage = (products: Product[]) => {
   try {
-    localStorage.setItem('allProducts', JSON.stringify(products));
+    localStorage.setItem('products', JSON.stringify(products));
   } catch (error) {
     console.error('Failed to save products to localStorage:', error);
   }
 };
 
 const initialState: ProductsState = {
-  items: loadAllProductsFromStorage(), // Загружаем из localStorage при инициализации
+  items: loadProductsFromStorage(),
   loading: false,
   error: null,
 };
@@ -30,20 +30,20 @@ const initialState: ProductsState = {
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async (): Promise<Product[]> => {
+    // Если продукты уже есть в localStorage, используем их
+    const existingProducts = loadProductsFromStorage();
+    if (existingProducts.length > 0) {
+      return existingProducts;
+    }
+
+    // Если продуктов нет, загружаем с API
     const response = await axios.get('https://fakestoreapi.com/products');
     const apiProducts = response.data.map((product: any) => ({
       ...product,
       isLiked: false,
     }));
 
-    // Загружаем текущие продукты из localStorage
-    const currentProducts = loadAllProductsFromStorage();
-    
-    // Объединяем: берем текущие продукты, добавляем недостающие API продукты
-    const existingIds = new Set(currentProducts.map(p => p.id));
-    const newApiProducts = apiProducts.filter((product: Product) => !existingIds.has(product.id));
-    
-    return [...currentProducts, ...newApiProducts];
+    return apiProducts;
   }
 );
 
@@ -57,25 +57,30 @@ const productsSlice = createSlice({
         id: Math.max(1000, Date.now()),
       };
       state.items.unshift(newProduct);
-      saveAllProductsToStorage(state.items);
+      saveProductsToStorage(state.items);
     },
     updateProduct: (state, action: PayloadAction<Product>) => {
       const index = state.items.findIndex(p => p.id === action.payload.id);
       if (index !== -1) {
         state.items[index] = action.payload;
-        saveAllProductsToStorage(state.items);
+        saveProductsToStorage(state.items);
       }
     },
     deleteProduct: (state, action: PayloadAction<number>) => {
       state.items = state.items.filter(product => product.id !== action.payload);
-      saveAllProductsToStorage(state.items);
+      saveProductsToStorage(state.items);
     },
     toggleLike: (state, action: PayloadAction<number>) => {
       const product = state.items.find(p => p.id === action.payload);
       if (product) {
         product.isLiked = !product.isLiked;
-        saveAllProductsToStorage(state.items);
+        saveProductsToStorage(state.items);
       }
+    },
+    // Добавляем action для принудительной перезагрузки с API
+    reloadProductsFromAPI: (state) => {
+      state.items = [];
+      saveProductsToStorage(state.items);
     },
   },
   extraReducers: (builder) => {
@@ -87,7 +92,7 @@ const productsSlice = createSlice({
       .addCase(fetchProducts.fulfilled, (state, action: PayloadAction<Product[]>) => {
         state.loading = false;
         state.items = action.payload;
-        saveAllProductsToStorage(state.items); // Сохраняем после загрузки
+        saveProductsToStorage(state.items);
       })
       .addCase(fetchProducts.rejected, (state, action) => {
         state.loading = false;
@@ -96,5 +101,5 @@ const productsSlice = createSlice({
   },
 });
 
-export const { addProduct, updateProduct, deleteProduct, toggleLike } = productsSlice.actions;
+export const { addProduct, updateProduct, deleteProduct, toggleLike, reloadProductsFromAPI } = productsSlice.actions;
 export default productsSlice.reducer;
