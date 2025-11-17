@@ -29,10 +29,22 @@ const ProductForm: React.FC<ProductFormProps> = ({
   },
   onSubmit,
   onCancel,
-  submitButtonText = 'Create Product',
-  title = 'Create New Product'
+  submitButtonText = 'Create Product'
 }) => {
-  const [formData, setFormData] = useState<ProductFormData>(initialData);
+  // Конвертируем initialData для использования строки в price
+  const initialFormData = {
+    ...initialData,
+    price: initialData.price === 0 ? '' : initialData.price.toString(),
+  };
+
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    price: string;
+    image: string;
+    category: string;
+  }>(initialFormData);
+  
   const [errors, setErrors] = useState<FormErrors>({});
 
   const validateForm = (): boolean => {
@@ -46,7 +58,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
       newErrors.description = 'Description is required';
     }
     
-    if (formData.price <= 0) {
+    const priceValue = parseFloat(formData.price);
+    if (!formData.price || priceValue <= 0 || isNaN(priceValue)) {
       newErrors.price = 'Price must be greater than 0';
     }
     
@@ -66,7 +79,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
     e.preventDefault();
     
     if (validateForm()) {
-      onSubmit(formData);
+      // Конвертируем price в число перед отправкой
+      const submitData: ProductFormData = {
+        ...formData,
+        price: parseFloat(formData.price) || 0,
+      };
+      onSubmit(submitData);
     }
   };
 
@@ -74,7 +92,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'price' ? parseFloat(value) || 0 : value,
+      [name]: value, // Всегда сохраняем как строку
     }));
     
     // Очищаем ошибку при вводе
@@ -126,6 +144,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             min="0"
             step="0.01"
             className={errors.price ? 'error' : ''}
+            placeholder="0.00"
           />
           {errors.price && <span className="error-message">{errors.price}</span>}
         </div>

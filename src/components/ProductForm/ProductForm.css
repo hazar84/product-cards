@@ -11,7 +11,8 @@
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  position: relative;
 }
 
 .form-group label {
@@ -29,6 +30,7 @@
   border-radius: 4px;
   font-size: 1rem;
   transition: border-color 0.3s ease;
+  text-align: left;
 }
 
 .form-group input:focus,
@@ -47,6 +49,11 @@
   font-size: 0.9rem;
   margin-top: 5px;
   display: block;
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  height: 20px;
+  white-space: nowrap;
 }
 
 .form-actions {
