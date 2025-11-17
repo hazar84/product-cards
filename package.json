@@ -1,7 +1,7 @@
 {
   "name": "calendar-app",
   "version": "1.0.0",
-  "homepage": "https://hazar84.github.io/calendar-app",
+  "homepage": "https://hazar84.github.io/product-cards",
   "scripts": {
     "dev": "webpack serve --mode development",
     "build": "webpack --mode production",
